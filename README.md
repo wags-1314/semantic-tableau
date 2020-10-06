@@ -1,4 +1,4 @@
-# python Semantic Tableau Satisfiabilty Solver
+# python Semantic Tableau Solver
 This script can
 
 1. Check wether a proposition is well formed or not
