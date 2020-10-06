@@ -9,4 +9,5 @@ As your keyboard cant type out the proper symbols for propositional logic, use t
 * `~` for not
 
 Example Output:
+
 ![Output](/image.jpeg)
