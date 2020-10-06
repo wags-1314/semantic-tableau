@@ -62,21 +62,19 @@ def read(string):
     return convert_to_prefix(read_form(reader))
 
 def validate(expr):
-    if type(expr) is list:
+    if isinstance(expr, list):
         if len(expr) > 3:
             return False
         elif len(expr) == 3:
-            operand_1, operator, operand_2 = expr
-            return validate(operand_1) and (operator in binary_connectives) and validate(operand_2)
+            operator, operand_1, operand_2 = expr
+            return operator in binary_connectives and validate(operand_1) and validate(operand_2)
         elif len(expr) == 2:
             operator, operand = expr
-            return (operator in unary_connectives) and validate(operand)
-        elif len(expr) == 1:
-            return validate(expr[0])
+            return operator == '~' and validate(operand)
         else:
             return False
     else:
-        return (expr not in binary_connectives) and (expr not in unary_connectives)
+        return True
 
 def convert_to_prefix(expr):
     if type(expr) is list:
@@ -130,11 +128,8 @@ def is_literal(formula):
 def contains_only_literals(tree):
     formulas = tree.data
     for formula in formulas:
-        if len(formula) == 3:
+        if not is_literal(formula):
             return False
-        elif len(formula) == 2:
-            if type(formula[1]) is list:
-                return False
     else:
         return True
 
@@ -180,11 +175,11 @@ def implies(a, b):
 def iff(a, b):
     return ['<=>', a, b]
 
-def create_tabluex(formulas):
+def create_tableau(formulas):
     tree = Tree(formulas)
-    return extend_tabluex(tree)
+    return extend_tableau(tree)
 
-def extend_tabluex(tree):
+def extend_tableau(tree):
     if contains_only_literals(tree):
         if is_closed(tree):
             tree.left = Tree("closed")
@@ -197,50 +192,50 @@ def extend_tabluex(tree):
         if len(non_literal) == 3:
             if non_literal[0] == '&':
                 formulas = formulas + [non_literal[1], non_literal[2]]
-                tree.left = extend_tabluex(Tree(formulas))
+                tree.left = extend_tableau(Tree(formulas))
                 return tree
             if non_literal[0] == '|':
                 operand_1, operand_2 = non_literal[1:]
-                tree.left = extend_tabluex(Tree(formulas + [operand_1]))
-                tree.right = extend_tabluex(Tree(formulas + [operand_2]))
+                tree.left = extend_tableau(Tree(formulas + [operand_1]))
+                tree.right = extend_tableau(Tree(formulas + [operand_2]))
                 return tree
             if non_literal[0] == '->':
                 operand_1, operand_2 = non_literal[1:]
-                tree.left = extend_tabluex(Tree(formulas + [negate(operand_1)]))
-                tree.right = extend_tabluex(Tree(formulas + [operand_2]))
+                tree.left = extend_tableau(Tree(formulas + [negate(operand_1)]))
+                tree.right = extend_tableau(Tree(formulas + [operand_2]))
                 return tree
             if non_literal[0] == '<=>':
                 operand_1, operand_2 = non_literal[1:]
                 left = [disjunct(operand_1, operand_2)]
                 right = [disjunct(negate(operand_1), negate(operand_2))]
-                tree.left = extend_tabluex(Tree(formulas + left))
-                tree.right = extend_tabluex(Tree(formulas + right))
+                tree.left = extend_tableau(Tree(formulas + left))
+                tree.right = extend_tableau(Tree(formulas + right))
                 return tree
         if len(non_literal) == 2:
             _, inner = non_literal
             if len(inner) == 3:
                 if inner[0] == '&':
                     operand_1, operand_2 = inner[1:]
-                    tree.left = extend_tabluex(Tree(formulas + [negate(operand_1)]))
-                    tree.right = extend_tabluex(Tree(formulas + [negate(operand_2)]))
+                    tree.left = extend_tableau(Tree(formulas + [negate(operand_1)]))
+                    tree.right = extend_tableau(Tree(formulas + [negate(operand_2)]))
                     return tree
                 if inner[0] == '|':
                     operand_1, operand_2 = inner[1:]
-                    tree.left = extend_tabluex(Tree(formulas + [negate(operand_1), negate(operand_2)]))
+                    tree.left = extend_tableau(Tree(formulas + [negate(operand_1), negate(operand_2)]))
                     return tree
                 if inner[0] == '->':
                     operand_1, operand_2 = inner[1:]
-                    tree.left = extend_tabluex(Tree(formulas + [operand_1, negate(operand_2)]))
+                    tree.left = extend_tableau(Tree(formulas + [operand_1, negate(operand_2)]))
                     return tree
                 if inner[0] == '<=>':
                     operand_1, operand_2 = inner[1:]
                     left = [disjunct(operand_1, negate(operand_2))]
                     right = [disjunct(negate(operand_1), operand_2)]
-                    tree.left = extend_tabluex(Tree(formulas + left))
-                    tree.right = extend_tabluex(Tree(formulas + right))
+                    tree.left = extend_tableau(Tree(formulas + left))
+                    tree.right = extend_tableau(Tree(formulas + right))
                     return tree
             if len(inner) == 2:
-                tree.left = extend_tabluex(Tree(formulas + [inner[1]]))
+                tree.left = extend_tableau(Tree(formulas + [inner[1]]))
                 return tree
 
 def print_tree(tree, prefix="", last=True):
@@ -253,40 +248,110 @@ def print_tree(tree, prefix="", last=True):
         last = i == (child_count - 1)
         print_tree(child, prefix, last)
 
-def check_binary_connectives_and_no_brackets(string):
+def get_all_leaf_nodes(tree):
+    leafs = []
+    def _get_all_leaf_nodes(tree):
+        if tree is not None:
+            if tree.left is None and tree.right is None:
+                leafs.append(tree.data)
+            _get_all_leaf_nodes(tree.left)
+            _get_all_leaf_nodes(tree.right)
+    _get_all_leaf_nodes(tree)
+    return leafs
+
+def is_tableau_satisfiable(tree):
+    leafs = get_all_leaf_nodes(tree)
+    for leaf in leafs:
+        if leaf == 'open':
+            return True
+    else:
+        return False
+
+def check_binary_connectives(string):
     for binary_connective in binary_connectives:
         if binary_connective in string:
-            return False
+            return True
     else:
-        return True
+        return False
 
-def check_unary_connectives_and_no_brackets(string):
+def check_unary_connectives(string):
     return "~" in string
 
-if __name__ == '__main__':
-    print("Welcome to the python semantic tree solver.")
+def wff_check_1(string):
+    if string[0] != "(" or string[-1] != ')':
+        if check_binary_connectives(string):
+            return True
+        elif check_unary_connectives(string):
+            return True
+        return False
+    return False
+
+def wff_check_2(exprs):
+    for expr in exprs:
+        if validate(expr):
+            return True
+    else:
+        return False
+
+def READ(string):
+    if wff_check_1(string):
+        raise Exception("Not a well formed formula.")
+    else:
+        return read(string)
+
+def EVAL(exprs):
+    if not wff_check_2(exprs):
+        raise Exception("Not a well formed formula.")
+    else:
+        return create_tableau(exprs)
+
+def PRINT(tableau, satisfiable_message='Tableau is open, hence is satisfiable.', unsatisfiable_message='Tableau is closed, hence unsatisfiable.'):
+    print_tree(tableau)
+    if is_tableau_satisfiable(tableau):
+        print(satisfiable_message)
+    else:
+        print(unsatisfiable_message)
+
+def repl():
+    """try:
+        expr = READ()
+        tableau = EVAL([expr])
+        PRINT(tableau)
+    except Exception as exc:
+        print(exc)"""
+    string = input('> ')
+    if '|=' in string:
+        premises, conclusion = string.split('|=')
+        premises = premises.strip()
+        conclusion = conclusion.strip()
+        premise_list = [premise.strip() for premise in premises.split(',')]
+        premise_expr_list = [READ(premise) for premise in premise_list]
+        conclusion_expr = READ(conclusion)
+        neg_conclusion_expr = negate(conclusion_expr)
+        premise_conclusion_expr_list = premise_expr_list + [neg_conclusion_expr]
+        tableau = EVAL(premise_conclusion_expr_list)
+        premises_fmtd = ', '.join(pprint_expr(expr) for expr in premise_expr_list)
+        conclusion_fmtd = pprint_expr(conclusion_expr)
+        satisfiable_message = premises_fmtd + " does not entail " + conclusion_fmtd + "."
+        unsatisfiable_message = premises_fmtd + " entails " + conclusion_fmtd + "."
+        PRINT(tableau, satisfiable_message, unsatisfiable_message)
+    else:
+        expr = READ(string)
+        tableau = EVAL([negate(expr)])
+        satisfiable_message = pprint_expr(expr) + " is not valid."
+        unsatisfiable_message = pprint_expr(expr) + " is valid."
+        PRINT(tableau, satisfiable_message, unsatisfiable_message)
+
+
+def main():
+    print("Welcome to the python semantic tableau validity solver.")
+    print("If you enter only one proposition, this will check for the validity of that proposition.")
+    print("For example, (p|(~p))")
+    print("If you want to test an argument with premises and conclusion, use |= to separate the premises from the conclusion, and use commas to separate the premises.")
+    print("For example, p|q, ~p |= q")
     print("Enter \"quit\" to quit.")
     while True:
-        string = input("> ")
-        if string == "quit":
-            break
+        repl()
 
-        if string[0] != "(" or string[-1] != ')': 
-            if check_binary_connectives_and_no_brackets(string):
-                print("1Not a well formed formula.")
-                continue
-            elif check_unary_connectives_and_no_brackets(string):
-                print("2Not a well formed formula.")
-                continue
-        try:
-            expr = read(string)
-        except err:
-            print(err)
-            
-        if validate(expr):
-            print("3Not a well formed formula.")
-            continue
-
-        print_tree(create_tabluex([expr]))
-
-
+if __name__ == '__main__':
+    main()
