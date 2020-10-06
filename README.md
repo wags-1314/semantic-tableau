@@ -1,12 +1,17 @@
 # python Semantic Tableau Satisfiabilty Solver
-Semantic Tabluex implementation in python
-As your keyboard cant type out the proper symbols for propositional logic, use these replacements instead
+This script can
 
-* `&` for and
-* `|` for or
-* `->` for implies
-* `<=>` for iff
-* `~` for not
+1. Check wether a proposition is well formed or not
+2. Solve for the validity of a well formed proposition, e.g. `(p∨(¬p))`
+3. Show wether a premise entails a conclusion. e.g. `(p∨q), (¬p) ⊨ q`
+
+Because a normal keyboard cant type out propostional logic symbols
+* `&` for and, `∧`
+* `|` for or, `∨`
+* `->` for implies, `→`
+* `<=>` for iff, `↔`
+* `~` for not, `¬`
+* `|=` for entailment, `⊨`
 
 Example Output:
 
