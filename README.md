@@ -1,2 +1,9 @@
-# python-semantic-tabluex
+# python Semantic Tabluex
 Semantic Tabluex implementation in python
+As your keyboard cant type out the proper symbols for propositional logic, use these replacements instead
+
+* `&` for and
+* `|` for or
+* `->` for implies
+* `<=>` for iff
+* `~` for not
