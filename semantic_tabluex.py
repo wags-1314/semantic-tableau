@@ -10,6 +10,9 @@ from collections import OrderedDict
 binary_connectives = ('&', '|', '->', '<=>')
 unary_connectives = ('~',)
 
+#
+# Parsing and tokenizing
+#
 def tokenizer(string):
         return string.replace("(", " ( ").replace(")", " ) ").replace("&", " & ").replace("|", " | ").replace("->", " -> ").replace("<=>", " <=> ").replace("~", " ~ ").strip().split()
 
@@ -105,6 +108,9 @@ def pprint_expr(expr):
     else:
         return expr
 
+#
+# Semantic tableau stuff
+#
 class Tree:
     def __init__(self, data, left=None, right=None):
         self.data = data
@@ -293,6 +299,9 @@ def wff_check_2(exprs):
     else:
         return False
 
+#
+# REPL and OUTPUT stuff
+#
 def READ(string):
     if wff_check_1(string):
         raise Exception("Not a well formed formula.")
